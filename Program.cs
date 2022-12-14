@@ -1,115 +1,93 @@
 ﻿
 // Сервісний центр електроніки
+
 #region Main
-CComputer computer = new CComputer();
-CCash cash = CCash.Initialize();
-CEngineer engineer = new CEngineer();
-CShedule shedule = new CShedule();
-CManager manager = new CManager();
-
-CBroom broom = new CBroom(500);
-CTrash trash = new CTrash();
-
-
-int Day = shedule.What_a_day();
-manager.Name(Day, "Bill", "Ann", "Olexandr", "Andriy", "Volodymir", "Daryna", "Dmytro");
 do
 {
-    Start();
+    CFacade facade = new CFacade();
+    facade.Start();
     Console.WriteLine("New custumer? (+ yes; - no)");
 } while (Console.ReadLine() == "+");
 #endregion
-#region Methods
-void Start()
+
+class CFacade
 {
-    manager.Speak0();
-    CCustumer custumer = new CCustumer(Console.ReadLine());
-    manager.Speak(custumer.name);
-    CBroken_device device = CManager.diagnosis(engineer);
-    double Price = computer.Check(device.display, device.mainboard, device.processor, device.videocard, device.power_supply, device.software);
-    manager.Speak(Price);
-    custumer.Pay(Price);
-    cash.Cash(Price);
-   trash.Trash(ref broom._strength);
+    CShedule shedule = new CShedule();
+    static Days Day = CShedule.What_a_day();
+    CManager manager = new CManager(Day, "Bill", "Ann", "Olexandr", "Andriy", "Volodymir", "Daryna", "Dmytro");
+    CComputer computer = new CComputer();
+    CEngineer engineer = new CEngineer();
+    CCash cash = CCash.Initialize();
+
+    CBroom broom = new CBroom(500);
+    CTrash trash = new CTrash();
+
+    public void Start()
+    {
+        manager.AskDevice();
+        CCustumer custumer = new CCustumer("Custumer", manager, engineer);
+        CBroken_device device = custumer.device;
+        double Price = computer.Check(device, engineer);
+        manager.TellPrice(Price);
+        custumer.Pay(Price);
+        CPayHistory history = new CPayHistory();
+        history.History.Push(cash.SaveState());
+        cash.Cash(Price);
+        Console.WriteLine("Do you want your money to go to charity? (+ yes, - no)");
+        if (Console.ReadLine() == "+") cash.RestoreState(history.History.Pop());
+        trash.Trash(ref broom._strength);
+    }
 }
-#endregion
 
 class CShedule
 {
     #region Fields
-    int _day;
+    static string? day;
     #endregion
 
-    public int What_a_day()
+    public static Days What_a_day()
     {
         Console.WriteLine("What day of the week is today?");
-        Console.WriteLine(
-            "1 - Monday\n" +
-            "2 - Tuesday\n" +
-            "3 - Wednesday\n" +
-            "4 - Thursday\n" +
-            "5 - Friday\n" +
-            "6 - Saturday\n" +
-            "7 - Sunday");
-        _day = Convert.ToInt32(Console.ReadLine());
-        return _day;
+        for (int i = 1; i < 8; i++)
+        {
+            Console.WriteLine(i + "-" + (Days)i);
+        }
+    Ask: day = Console.ReadLine();
+        if (day != "Monday" && day != "Tuesday" && day != "Wednesday" && day != "Thursday" && day != "Friday" && day != "Saturday" && day != "Sunday")
+        {
+            Console.WriteLine("It's not a day of the week! Try again.");
+            goto Ask;
+        }
+        Days Day = (Days)Enum.Parse(typeof(Days), day, true);
+        return Day;
     }
 }
 class CManager
 {
     string? _name;
-    public void Name(int day, params string[] names)
+    public CManager(Days day, params string[] names)
     {
-        switch (day)
-        {
-            case (int)Days.Monday:
-                _name = names[0];
-                break;
-            case (int)Days.Tuesday:
-                _name = names[1];
-                break;
-            case (int)Days.Wednesday:
-                _name = names[2];
-                break;
-            case (int)Days.Thursday:
-                _name = names[3];
-                break;
-            case (int)Days.Friday:
-                _name = names[4];
-                break;
-            case (int)Days.Saturday:
-                _name = names[5];
-                break;
-            case (int)Days.Sunday:
-                _name = names[6];
-                break;
-            default:
-                _name = "Pracivnyk";
-                break;
-        }
+        _name = names[(int)day - 1];
+        if (_name == null) _name = "Manager";
     }
-    public static CBroken_device diagnosis(CEngineer engineer)
+
+    public CBroken_device Transmission(CBroken_device device, CEngineer engineer)
     {
-        CBroken_device device = new CBroken_device();
-        Console.WriteLine("(Engineer)");
-        device.display = engineer.Serviceability("display");
-        device.mainboard = engineer.Serviceability("mainboard");
-        device.processor = engineer.Serviceability("processor");
-        device.videocard = engineer.Serviceability("videocard");
-        device.power_supply = engineer.Serviceability("power supply");
-        device.software = engineer.Serviceability("software");
+        device = engineer.Diagnosis(device);
         return device;
+
     }
-    public void Speak0()
+
+    public void AskName()
     {
         Console.WriteLine("(Custumer)");
         Console.WriteLine("What is your name?");
     }
-    public void Speak(string name1)
+    public void AskDevice()
     {
-        Console.WriteLine("Hello, " + name1 + "! My name is " + _name + ". Give me your device!");
+        Console.WriteLine("Hello! My name is " + _name + ". Give me your device!");
     }
-    public void Speak(double price)
+    public void TellPrice(double price)
     {
         Console.WriteLine("Repair costs " + price + " grn.");
     }
@@ -117,32 +95,29 @@ class CManager
 
 class CComputer
 {
-    double _displayP = 1000;
-    double _mainboardP = 2000;
-    double _processorP = 1500;
-    double _videocardP = 5000;
-    double _power_supplyP = 1200;
-    double _softwareP = 1100;
-    public double Check(bool display, bool mainboard, bool processor, bool videocard, bool power_supply, bool software)
+    public double Check(CBroken_device device, CEngineer engineer)
     {
         double price = 0;
-        if (display == false) price += _displayP;
-        if (mainboard == false) price += _mainboardP;
-        if (processor == false) price += _processorP;
-        if (videocard == false) price += _videocardP;
-        if (power_supply == false) price += _power_supplyP;
-        if (software == false) price += _softwareP;
+        if (device.Display == false) price += engineer.Display();
+        if (device.Mainboard == false) price += engineer.Mainboard();
+        if (device.Processor == false) price += engineer.Processor();
+        if (device.Videocard == false) price += engineer.Videocard();
+        if (device.PowerSupply == false) price += engineer.Power_supply();
+        if (device.Software == false) price += engineer.Software();
         return price;
     }
 }
 
 class CCustumer
 {
-    public string name;
+    public string Name;
     double cash = 30000;
-    public CCustumer(string name)
+    public CBroken_device device;
+    public CCustumer(string name, CManager manager, CEngineer engineer)
     {
-        this.name = name;
+        this.Name = name;
+        device = manager.Transmission(device, engineer);
+
     }
     public void Pay(double price)
     {
@@ -150,19 +125,30 @@ class CCustumer
     }
 }
 
-class CBroken_device
+struct CBroken_device
 {
-    public bool display;
-    public bool mainboard;
-    public bool processor;
-    public bool videocard;
-    public bool power_supply;
-    public bool software;
+    public bool Display;
+    public bool Mainboard;
+    public bool Processor;
+    public bool Videocard;
+    public bool PowerSupply;
+    public bool Software;
 
 }
 
 class CEngineer
 {
+    public CBroken_device Diagnosis(CBroken_device device)
+    {
+        Console.WriteLine("(Engineer)");
+        device.Display = Serviceability("display");
+        device.Mainboard = Serviceability("mainboard");
+        device.Processor = Serviceability("processor");
+        device.Videocard = Serviceability("videocard");
+        device.PowerSupply = Serviceability("power supply");
+        device.Software = Serviceability("software");
+        return device;
+    }
     public bool Serviceability(string component)
     {
         Console.WriteLine("Is the " + component + " working? (+ serviceable; - defective)");
@@ -170,21 +156,74 @@ class CEngineer
         if (x == "-") return false;
         else return true;
     }
+    Random rnd = new Random();
+    public double Display()
+    {
+        int x = rnd.Next(1, 4);
+        if (x == 1) return 1000;
+        if (x == 2) return 1500;
+        else return 2200;
+    }
+    public double Mainboard()
+    {
+        int x = rnd.Next(1, 6);
+        if (x == 1) return 800;
+        if (x == 2) return 1100;
+        if (x == 3) return 1650;
+        if (x == 4) return 1900;
+        else return 2400;
+    }
+    public double Processor()
+    {
+        int x = rnd.Next(1, 3);
+        if (x == 1) return 500;
+        else return 1500;
+    }
+    public double Videocard()
+    {
+        int x = rnd.Next(1, 6);
+        if (x == 1) return 900;
+        if (x == 2) return 1700;
+        if (x == 3) return 3200;
+        if (x == 4) return 4500;
+        else return 5000;
+    }
+    public double Power_supply()
+    {
+        int x = rnd.Next(1, 3);
+        if (x == 1) return 700;
+        else return 1800;
+    }
+    public double Software()
+    {
+        int x = rnd.Next(1, 4);
+        if (x == 1) return 500;
+        if (x == 2) return 999;
+        else return 1350;
+    }
 }
 
 sealed class CCash
 {
     double cash = 5320;
-    private static CCash single = null;
+    private static CCash _single = null;
     private CCash() { }
     public static CCash Initialize()
     {
-        if (single == null) single = new CCash();
-        return single;
+        if (_single == null) _single = new CCash();
+        return _single;
     }
     public void Cash(double money)
     {
         cash += money;
+    }
+    public CCashMemento SaveState()
+    {
+        return new CCashMemento(cash);
+    }
+    public void RestoreState(CCashMemento memento)
+    {
+        this.cash = memento.Cash_service;
     }
 }
 
@@ -222,5 +261,23 @@ class CTrash
             strenght -= _trash;
             _trash = 0;
         }
+    }
+}
+
+class CCashMemento
+{
+    public double Cash_service { get; private set; }
+    public CCashMemento(double cash_service)
+    {
+        Cash_service = cash_service;
+    }
+}
+
+class CPayHistory
+{
+    public Stack<CCashMemento> History { get; private set; }
+    public CPayHistory()
+    {
+        History = new Stack<CCashMemento>();
     }
 }
