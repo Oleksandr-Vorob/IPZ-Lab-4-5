@@ -2,7 +2,7 @@
 // Сервісний центр електроніки
 
 #region Main
-CRapairService repairService = new CRapairService();
+CRepairService repairService = new CRepairService();
 do
 {
     repairService.Start();
@@ -10,7 +10,7 @@ do
 } while (Console.ReadLine() == "+");
 #endregion
 
-class CRapairService
+class CRepairService
 {
     static Days _day = CShedule.What_a_day();
     CManager manager = new CManager(_day, "Bill", "Ann", "Olexandr", "Andriy", "Volodymir", "Daryna", "Dmytro");
@@ -103,91 +103,71 @@ class CManager
 
 class CComputer
 {
-    Random rnd = new Random();
+    static Random rnd = new Random();
+    string[] accessories = { "Display", "Mainboard", "Processor", "Videocard", "Power supply", "Software" };
     public double Check(CBroken_device device)
     {
+        bool[] deviceAccessories = { device.Display, device.Mainboard, device.Processor, device.Videocard, device.PowerSupply, device.Software };
         double price = 0;
-        if (device.Display == false)
+        for (int i=0; i < deviceAccessories.Length; i++ )
         {
-            price += Display();
-            Console.WriteLine("Display is broken. Price " + Display() + "grn.");
+            double[] methods = { Display(), Mainboard(), Processor(), Videocard(), Power_supply(), Software() };
+            if (deviceAccessories[i] == false)
+            {
+                price += methods[i];
+                Console.WriteLine(accessories[i] +" is broken. Price " + methods[i] + "grn.");
+            }
+            else Console.WriteLine(accessories[i] + " works.");
         }
-        else Console.WriteLine("Display works.");
-        if (device.Mainboard == false)
-        {
-            price += Mainboard();
-            Console.WriteLine("Mainboard is broken. Price " + Mainboard() + "grn.");
-        }
-        else Console.WriteLine("Mainboard works.");
-
-        if (device.Processor == false)
-        {
-            price += Processor();
-            Console.WriteLine("Processor is broken. Price " + Processor() + "grn.");
-        }
-        else Console.WriteLine("Processor works.");
-
-        if (device.Videocard == false)
-        {
-            price += Videocard();
-            Console.WriteLine("Videocard is broken. Price " + Videocard() + "grn.");
-        }
-        else Console.WriteLine("Videocard works.");
-
-        if (device.PowerSupply == false)
-        {
-            price += Power_supply();
-            Console.WriteLine("Power supply is broken. Price " + Power_supply() + "grn.");
-        }
-        else Console.WriteLine("Power supply works.");
-
-        if (device.Software == false)
-        {
-            price += Software();
-            Console.WriteLine("Software is broken. Price " + Software() + "grn.");
-        }
-        else Console.WriteLine("Software works.");
-
         return price;
     }
-    public double Display()
+    public static double Display()
     {
-        int x = rnd.Next(1, 4);
-        if (x == 1) return 1000;
-        if (x == 2) return 1500;
-        else return 2200;
+        int  x = rnd.Next(1, 4);
+        switch (x)
+        {
+            case 1: return 1000;
+            case 2: return 1500;
+            default: return 2200;
+        }
     }
-    public double Mainboard()
+    public static double Mainboard()
     {
         int x = rnd.Next(1, 6);
-        if (x == 1) return 800;
-        if (x == 2) return 1100;
-        if (x == 3) return 1650;
-        if (x == 4) return 1900;
-        else return 2400;
+        switch (x)
+        {
+            case 1: return 800;
+            case 2: return 1100;
+            case 3: return 1650;
+            case 4: return 1900;
+            default: return 2400;
+        }
     }
-    public double Processor()
+    public static double Processor()
     {
         int x = rnd.Next(1, 3);
         if (x == 1) return 500;
         else return 1500;
     }
-    public double Videocard()
+    public static double Videocard()
     {
         int x = rnd.Next(1, 6);
-        if (x == 1) return 900;
-        if (x == 2) return 1700;
-        if (x == 3) return 3200;
-        if (x == 4) return 4500;
-        else return 5000;
+        switch (x)
+        {
+            case 1: return 900;
+            case 2: return 1700;
+            case 3: return 3200;
+            case 4: return 4500;
+            default: return 5000;
+        }
     }
-    public double Power_supply()
+    public static double Power_supply()
     {
         int x = rnd.Next(1, 3);
         if (x == 1) return 700;
         else return 1800;
     }
-    public double Software()
+    public static double Software()
     {
         int x = rnd.Next(1, 4);
         if (x == 1) return 500;
@@ -206,6 +186,7 @@ class CCustumer
         this.Name = name;
         //Device = manager.Transmission(Device, engineer);
         Device.Display = true;
+        Device.Processor = true;
     }
     public void Pay(double price)
     {
@@ -261,7 +242,7 @@ class CEngineer
 sealed class CCash
 {
     double cash = 5320;
-    private static CCash _single = null;
+    private static CCash? _single = null;
     private CCash() { }
     public static CCash Initialize()
     {
