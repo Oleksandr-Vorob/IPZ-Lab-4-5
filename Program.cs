@@ -3,6 +3,8 @@
 
 #region Main
 CRepairService repairService = new CRepairService();
+IObserver robotCleaner = new CRobotCleaner(500);
+repairService.AttachObserver(robotCleaner);
 do
 {
     repairService.Start();
@@ -18,8 +20,10 @@ class CRepairService
     CEngineer engineer = new CEngineer();
     CCash cash = CCash.Initialize();
 
-    CBroom broom = new CBroom(500);
     CTrash trash = new CTrash();
+
+    IObserver[] _observer = new IObserver[5];
+    int _observerCounter;
 
     public void Start()
     {
@@ -37,7 +41,19 @@ class CRepairService
         Console.WriteLine("Do you want your money to go to charity? (+ yes, - no)");
         if (Console.ReadLine() == "+") cash.RestoreState(history.History.Pop());
         trash.Generation();
-        trash.Clean(broom.Strength);
+        Notify();
+    }
+    public void AttachObserver(IObserver observer)
+    {
+        _observer[_observerCounter] = observer;
+        ++_observerCounter;
+    }
+    public void Notify()
+    {
+        for (int i = 0; i < _observerCounter; ++i)
+        {
+            _observer[i].Update(trash);
+        }
     }
 }
 
@@ -109,13 +125,13 @@ class CComputer
     {
         bool[] deviceAccessories = { device.Display, device.Mainboard, device.Processor, device.Videocard, device.PowerSupply, device.Software };
         double price = 0;
-        for (int i=0; i < deviceAccessories.Length; i++ )
+        for (int i = 0; i < deviceAccessories.Length; i++)
         {
             double[] methods = { Display(), Mainboard(), Processor(), Videocard(), Power_supply(), Software() };
             if (deviceAccessories[i] == false)
             {
                 price += methods[i];
-                Console.WriteLine(accessories[i] +" is broken. Price " + methods[i] + "grn.");
+                Console.WriteLine(accessories[i] + " is broken. Price " + methods[i] + "grn.");
             }
             else Console.WriteLine(accessories[i] + " works.");
         }
@@ -123,7 +139,7 @@ class CComputer
     }
     public static double Display()
     {
-        int  x = rnd.Next(1, 4);
+        int x = rnd.Next(1, 4);
         switch (x)
         {
             case 1: return 1000;
@@ -274,32 +290,36 @@ enum Days
     Sunday
 }
 
-class CBroom
+interface IObserver
+{
+    void Update(CTrash trash);
+}
+
+class CRobotCleaner : IObserver
 {
     public double Strength { get; set; }
-    public CBroom(double strength)
+    public CRobotCleaner(double strength)
     {
         this.Strength = strength;
     }
-
+    public void Update(CTrash trash)
+    {
+        if (trash.Trash > 15)
+        {
+            Strength -= trash.Trash;
+            trash.Trash = 0;
+        }
+    }
 }
 
 class CTrash
 {
-    int _trash = 0;
+    public int Trash = 0;
     public void Generation()
     {
         Random rnd = new Random();
         int x = rnd.Next(5, 20);
-        _trash += x;
-    }
-    public void Clean(double strenght)
-    {
-        if (_trash > 15)
-        {
-            strenght -= _trash;
-            _trash = 0;
-        }
+        Trash += x;
     }
 }
 
