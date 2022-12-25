@@ -3,8 +3,7 @@
 
 #region Main
 CRepairService repairService = new CRepairService();
-IObserver robotCleaner = new CRobotCleaner(500);
-repairService.AttachObserver(robotCleaner);
+
 do
 {
     repairService.Start();
@@ -19,11 +18,14 @@ class CRepairService
     CComputer computer = new CComputer();
     CEngineer engineer = new CEngineer();
     CCash cash = CCash.Initialize();
-
-    CTrash trash = new CTrash();
-
-    IObserver[] _observer = new IObserver[5];
-    int _observerCounter;
+    IObserver robotCleaner;
+    CTrash trash;
+    public CRepairService()
+    {
+        trash = new CTrash();
+        robotCleaner = new CRobotCleaner(500);
+        trash.AttachObserver(robotCleaner);
+    }
 
     public void Start()
     {
@@ -41,20 +43,8 @@ class CRepairService
         Console.WriteLine("Do you want your money to go to charity? (+ yes, - no)");
         if (Console.ReadLine() == "+") cash.RestoreState(history.History.Pop());
         trash.Generation();
-        Notify();
     }
-    public void AttachObserver(IObserver observer)
-    {
-        _observer[_observerCounter] = observer;
-        ++_observerCounter;
-    }
-    public void Notify()
-    {
-        for (int i = 0; i < _observerCounter; ++i)
-        {
-            _observer[i].Update(trash);
-        }
-    }
+    
 }
 
 class CShedule
@@ -314,12 +304,28 @@ class CRobotCleaner : IObserver
 
 class CTrash
 {
+    IObserver[] _observer = new IObserver[5];
+    int _observerCounter;
     public int Trash = 0;
+
     public void Generation()
     {
         Random rnd = new Random();
         int x = rnd.Next(5, 20);
         Trash += x;
+        Notify();
+    }
+    public void AttachObserver(IObserver observer)
+    {
+        _observer[_observerCounter] = observer;
+        ++_observerCounter;
+    }
+    public void Notify()
+    {
+        for (int i = 0; i < _observerCounter; ++i)
+        {
+            _observer[i].Update(this);
+        }
     }
 }
 
